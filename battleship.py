@@ -424,10 +424,14 @@ class Levelscreen(Screen):
         sm.current = "game"
 
 class Gamescreen(Screen):
+    # dictionary list of id for all the buttons created on both grids
     myshipdict = {}
     eneshipdict = {}
+    # boards to keep track of what is available - normal buttons
     myshipboard = {'Battleship(4)': 1, 'Cruiser(3)': 2, 'Destroyer(2)': 3, 'Submarine(1)': 4}
     eneshipboard = {'Battleship(4)': 1, 'Cruiser(3)': 2, 'Destroyer(2)': 3, 'Submarine(1)': 4}
+    
+    # PC memory
     eneavailunits = [[i,j] for i in range(1,11) for j in range(1,11)]
     enehitlist = {'hit':[],'dir':[], 'next':[]}
     
@@ -443,7 +447,7 @@ class Gamescreen(Screen):
         
         for i in range(100):
             self.btn = ToggleButton(id=numid[i], height = 0.001, width = 0.001)
-            self.btn.bind(on_press=self.update)
+            self.btn.bind(on_press=self.levelfunction)
             self.ids.enemyborder.add_widget(self.btn)
             self.eneshipdict[self.btn.id] = self.btn
         
@@ -455,11 +459,128 @@ class Gamescreen(Screen):
             self.btn.disabled = True
 
     # when you click a togglebutton (on the enemy border - RHS grid)
-    def update(self, instance):
-        print("update function")
+    def levelfunction(self, instance):
+        # my turn
+        print("processing my turn")
+        #on_press meaning that the togglebutton is clicked already and state changes from 'normal' to 'down'
+        #button is SELECTED
+        if instance.state == 'down':
+            print(instance.id,type(instance.id))
+            r,c = instance.id.strip("[]'").split(",") 
+            unit = [int(r),int(c)]
+            hit = self.checkhit(unit,self.eneship,self.eneshipdict,self.eneshipboard,self.ids.eneshipupdate)
+            if hit == None:
+                instance.disabled = True
+        # else if a down button is clicked - nothing happens
+        
+        # PC turn - different in terms of level chosen
+        print("processing PC turn")
+        if self.level == "Level 1":
+            pcunit = self.level1()
+            
+        elif self.level == "Level 2":
+            pcunit = self.level2()
+        else: #level 3
+            pcunit = self.level3()
+        print("pcunit: ",pcunit)    
+        
+        #process PC unit    
+        hit = self.checkhit(pcunit,self.myship,self.myshipdict,self.myshipboard,self.ids.myshipupdate)
+        # never hit
+        if hit == None:
+            self.eneavailunits.remove(pcunit)
+            self.myshipdict.get(str(pcunit)).state = 'down'
+            # !!!!!!need to change into another function!!! dir not cfm
+            if len(self.enehitlist.get('hit')) == 1:
+                self.returnnextunit(False)
+            elif len(self.enehitlist.get('hit')) >= 2:
+                self.returnnextunit(True)
+                
+        # hit full ship
+        elif hit == True:
+            self.enehitlist['hit'] = []
+            self.enehitlist['dir'] = []
+            self.enehitlist['next'] = []
+            
+        
+        # hit
+        elif hit == False:
+            hitlist = self.enehitlist.get('hit')
+            hitlist.append(pcunit)
+            hitlist.sort()
+            self.enehitlist['hit'] = hitlist
+            
+            # first hit & dir not cfm
+            if len(self.enehitlist.get('hit')) == 1:
+                print("pc hit once", pcunit)
+                self.returnnextunit(False) 
+            
+            # dir cfm
+            elif len(self.enehitlist.get('hit')) >= 2:
+                self.returnnextunit(True)    
+            
+    def level1(self):
+        print("level selected: ", self.level)
+        pcunit = random.choice(self.eneavailunits)
+        return pcunit
+        
+    def level2(self):
+        print("level selected: ", self.level)
+        
+    def level3(self):
+        print("level selected: ", self.level)
 
+    # unit - the selected unit to be checked if it is a hit
+    # shiplist - list of the chosen ships 
+    # dictt - dictionary list of id for all the buttons created on both grids
+    # board - to keep track of what is available - normal buttons
+    # label - id of the number of ships left
+    # returns boolean - True: full hit; False: single hit; None: no hit
+    # additional - for PC turn: full/single hit-> will remove pcunit from enemy available options list
+    def checkhit(self,unit,shiplist,dictt,board,label):
+        for key,val in shiplist.items():
+            if val:
+                for num in val:
+                    #unit is a hit
+                    if unit in num[0]:
+                        num[0].remove(unit)
+                        dictt.get(str(unit)).state = 'down'
+                        dictt.get(str(unit)).add_widget(Image(source = 'ship_unit.png', size = (dictt.get(str(unit)).width, dictt.get(str(unit)).height), pos = dictt.get(str(unit)).pos))
+                        dictt.get(str(unit)).disabled = True
+                        # for pc, need to remove the choice from enemy available options lists
+                        if shiplist == self.myship:
+                            self.eneavailunits.remove(unit)
+                        # if an empty list - full hit
+                        if not num[0]:
+                            #opening and disabling the surr
+                            for everysurr in num[1]:
+                                if dictt.get(str(everysurr)).state == 'normal':
+                                    dictt.get(str(everysurr)).state = 'down'
+                                    dictt.get(str(everysurr)).disabled = True
+                                if shiplist == self.myship:
+                                    if everysurr in self.eneavailunits:
+                                        self.eneavailunits.remove(everysurr)
+                                    
+                            # reflect on the scoreboard
+                            val = board.get(key)
+                            newval = val - 1
+                            board[key] = newval
+                            label.text = "{}\n{}\n{}\n{}".format(board["Battleship(4)"],board['Cruiser(3)'],board['Destroyer(2)'],board['Submarine(1)'])
+                            
 
-
+                            #check for WIN
+                            if self.myshipboard["Battleship(4)"] == 0 and self.myshipboard['Cruiser(3)'] == 0 and self.myshipboard['Destroyer(2)'] == 0 and self.myshipboard['Submarine(1)'] == 0:
+                                self.winbtn = Button(height = 1, width = 1,background_color = [0,0,0,0],text="PC wins!",font_size=400)
+                                self.ids.overallscreen.add_widget(self.winbtn)
+                                self.winbtn.disabled = True
+                            if self.eneshipboard['Cruiser(3)'] == 0 and self.eneshipboard['Destroyer(2)'] == 0 and self.eneshipboard['Submarine(1)'] == 0:
+                                self.winbtn = Button(height = 1, width = 1,background_color = [0,0,0,0],text="YOU win!",font_size=400)
+                                self.ids.overallscreen.add_widget(self.winbtn)
+                                self.winbtn.disabled = True
+                            return True
+                        
+                        return False
+# Helper functions ---------------------------------------------------------------------------------------------------------------------
 
 # Kivy setup --------------------------------------------------------------------------------------------------------------------------
 sm = ScreenManager()
