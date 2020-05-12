@@ -433,7 +433,10 @@ class Gamescreen(Screen):
     
     # PC memory
     eneavailunits = [[i,j] for i in range(1,11) for j in range(1,11)]
-    enehitlist = {'hit':[],'dir':[], 'next':[]}
+    enehitlist = {'hit':[],'dir':[],'next':[]} #for level 2 and 3
+    # dir: a list with the confirmed/currently using direction at index 0
+    # next (the next move that the PC has calculated): when there is a hit (unit in 'hit' list); the next pc move is the unit in this next list 
+    # hit: a list with hits (that hasnt result in a FULL sink)
     
     def on_pre_enter(self):
         
@@ -476,35 +479,48 @@ class Gamescreen(Screen):
         # PC turn - different in terms of level chosen
         print("processing PC turn")
         if self.level == "Level 1":
-            pcunit = self.level1()
+            self.level1()
             
         elif self.level == "Level 2":
-            pcunit = self.level2()
+            self.level2()
         else: #level 3
-            pcunit = self.level3()
-        print("pcunit: ",pcunit)    
-        
-        #process PC unit    
+            self.level3()
+            
+    # processing PC unit
+    def level1(self):
+        # PC gets a random unit to choose
+        pcunit = random.choice(self.eneavailunits)
+        print("level selected: ", self.level,"; pcunit: ",pcunit)    
         hit = self.checkhit(pcunit,self.myship,self.myshipdict,self.myshipboard,self.ids.myshipupdate)
+                       
+    def level2(self):
+        # PC checks if there is no previous hits
+        hitlist = self.enehitlist.get('hit')
+        if hitlist == []: 
+            pcunit = random.choice(self.eneavailunits)
+        else:
+            pcunit = self.enehitlist.get('next')
+        print("level selected: ", self.level,"; pcunit: ",pcunit)    
+        hit = self.checkhit(pcunit,self.myship,self.myshipdict,self.myshipboard,self.ids.myshipupdate)
+                
         # never hit
         if hit == None:
-            self.eneavailunits.remove(pcunit)
-            self.myshipdict.get(str(pcunit)).state = 'down'
-            # !!!!!!need to change into another function!!! dir not cfm
-            if len(self.enehitlist.get('hit')) == 1:
+            if len(self.enehitlist.get('hit')) == 1: #dir not cfm
                 self.returnnextunit(False)
-            elif len(self.enehitlist.get('hit')) >= 2:
+            elif len(self.enehitlist.get('hit')) >= 2: #dir cfm
                 self.returnnextunit(True)
                 
         # hit full ship
         elif hit == True:
+            print("full hit")
             self.enehitlist['hit'] = []
             self.enehitlist['dir'] = []
             self.enehitlist['next'] = []
-            
         
         # hit
         elif hit == False:
+            print("hit")
+            # update the hit list in enehitlist with the hit unit
             hitlist = self.enehitlist.get('hit')
             hitlist.append(pcunit)
             hitlist.sort()
@@ -517,17 +533,10 @@ class Gamescreen(Screen):
             
             # dir cfm
             elif len(self.enehitlist.get('hit')) >= 2:
-                self.returnnextunit(True)    
-            
-    def level1(self):
-        print("level selected: ", self.level)
-        pcunit = random.choice(self.eneavailunits)
-        return pcunit
-        
-    def level2(self):
-        print("level selected: ", self.level)
+                self.returnnextunit(True)
         
     def level3(self):
+        #diff from level 2: certain units where there isnt a ship logically- > PC wont choose it
         print("level selected: ", self.level)
 
     # unit - the selected unit to be checked if it is a hit
@@ -536,7 +545,7 @@ class Gamescreen(Screen):
     # board - to keep track of what is available - normal buttons
     # label - id of the number of ships left
     # returns boolean - True: full hit; False: single hit; None: no hit
-    # additional - for PC turn: full/single hit-> will remove pcunit from enemy available options list
+    # additional - for PC turn: full/single hit-> will remove pcunit from enemy available options list; full hit -> remove surr blocks
     def checkhit(self,unit,shiplist,dictt,board,label):
         for key,val in shiplist.items():
             if val:
@@ -578,10 +587,61 @@ class Gamescreen(Screen):
                                 self.ids.overallscreen.add_widget(self.winbtn)
                                 self.winbtn.disabled = True
                             return True
-                        
                         return False
-# Helper functions ---------------------------------------------------------------------------------------------------------------------
+                    
+        # unit is not a hit
+        if shiplist == self.myship:
+            self.eneavailunits.remove(unit)
+            self.myshipdict.get(str(unit)).state = 'down'
 
+        
+# Helper functions ---------------------------------------------------------------------------------------------------------------------
+    def returnnextunit(self,direc):
+        #direction not cfm
+        if direc == False:
+            possible = False
+            while not possible:
+                print("self.enehitlist.get('dir')",self.enehitlist.get('dir'))
+                dir_avail = list(set([1,-1,2,-2])-set(self.enehitlist.get('dir')))
+                print("dir_avail",dir_avail)
+                dir_to_use = random.choice(dir_avail)
+                nextunit = self.getnextunit(dir_to_use)
+                possible = self.checkpossible(nextunit)
+                print('possible',possible)
+                dirlist = self.enehitlist.get('dir')
+                dirlist.insert(0,dir_to_use)
+                self.enehitlist['dir'] = dirlist
+        #direction cfm
+        elif direc == True:
+            dirlist = self.enehitlist.get('dir')
+            cfmdir = dirlist[0] #cfm dir at index 0
+            dir_to_use = random.choice([cfmdir,-cfmdir])
+            nextunit = self.getnextunit(dir_to_use)
+            possible = self.checkpossible(nextunit)
+            if possible == False:
+                nextunit = self.getnextunit(-dir_to_use)
+                
+        self.enehitlist['next'] = nextunit
+        
+    def getnextunit(self,dire):
+        print(dire)
+        hitlist = self.enehitlist.get('hit')
+        if dire == 1:
+            nextunit = [hitlist[-1][0]+1,hitlist[-1][1]]
+        elif dire == -1:
+            nextunit = [hitlist[0][0]-1,hitlist[0][1]]
+        elif dire == 2:
+            nextunit = [hitlist[-1][0],hitlist[-1][1]+1]
+        elif dire == -2:
+            nextunit = [hitlist[0][0],hitlist[0][1]-1]
+        return nextunit
+    
+    def checkpossible(self,unit):
+        if unit not in self.eneavailunits or unit[0] <= 0 or unit[1] <= 0 or unit[0] >= 11 or unit[1] >= 11:
+            return False
+        else:
+            return True
+        
 # Kivy setup --------------------------------------------------------------------------------------------------------------------------
 sm = ScreenManager()
 sm.add_widget(Setup(name="setup"))
