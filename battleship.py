@@ -486,7 +486,7 @@ class Gamescreen(Screen):
         else: #level 3
             self.level3()
             
-    # processing PC unit
+    # processing PC unit ---------------------------------------------------------------------------------------
     def level1(self):
         # PC gets a random unit to choose
         pcunit = random.choice(self.eneavailunits)
@@ -537,7 +537,62 @@ class Gamescreen(Screen):
         
     def level3(self):
         #diff from level 2: certain units where there isnt a ship logically- > PC wont choose it
+        # on every PC turn, check if a certain length of ship can fit
         print("level selected: ", self.level)
+         # PC checks if there is no previous hits
+        hitlist = self.enehitlist.get('hit')
+        if hitlist == []: 
+            if self.myshipboard['Submarine(1)'] == 0:
+                self.update_ene_avail(1)
+                print('update: all 1 units sank',self.eneavailunits)
+                
+#            if self.myshipboard['Destroyer(2)'] == 0:
+#                self.update_ene_avail(2)
+#                print("update: all 2 units sank",self.eneavailunits)
+#                
+#            if self.myshipboard['Cruiser(3)']==0:
+#                self.update_ene_avail(3)
+#                print("update: all 3 units sank",self.eneavailunits)
+            
+            pcunit = random.choice(self.eneavailunits)
+        else:
+            pcunit = self.enehitlist.get('next')
+        print("level selected: ", self.level,"; pcunit: ",pcunit)    
+        hit = self.checkhit(pcunit,self.myship,self.myshipdict,self.myshipboard,self.ids.myshipupdate)
+                
+        # never hit
+        if hit == None:
+            if len(self.enehitlist.get('hit')) == 1: #dir not cfm
+                self.returnnextunit(False)
+            elif len(self.enehitlist.get('hit')) >= 2: #dir cfm
+                self.returnnextunit(True)
+                
+        # hit full ship
+        elif hit == True:
+            print("full hit")
+            self.enehitlist['hit'] = []
+            self.enehitlist['dir'] = []
+            self.enehitlist['next'] = []
+        
+        # hit
+        elif hit == False:
+            print("hit")
+            # update the hit list in enehitlist with the hit unit
+            hitlist = self.enehitlist.get('hit')
+            hitlist.append(pcunit)
+            hitlist.sort()
+            self.enehitlist['hit'] = hitlist
+            
+            # first hit & dir not cfm
+            if len(self.enehitlist.get('hit')) == 1:
+                print("pc hit once", pcunit)
+                self.returnnextunit(False) 
+            
+            # dir cfm
+            elif len(self.enehitlist.get('hit')) >= 2:
+                self.returnnextunit(True)
+
+
 
     # unit - the selected unit to be checked if it is a hit
     # shiplist - list of the chosen ships 
@@ -642,6 +697,22 @@ class Gamescreen(Screen):
         else:
             return True
         
+    def update_ene_avail(self,num):
+        # removing boxes that are single (since all single units are sank)
+        if num == 1:
+            for ele in self.eneavailunits:
+                if [ele[0]+1,ele[1]] not in self.eneavailunits and [ele[0]-1,ele[1]] not in self.eneavailunits and [ele[0],ele[1]+1] not in self.eneavailunits and [ele[0],ele[1]-1] not in self.eneavailunits:
+                    print('one',ele)
+                    self.eneavailunits.remove(ele) 
+        
+#        # removing boxes that are 2 units (since all 2 units are sank)
+#        elif num == 2:
+#            self.updatelist(2)
+#        
+#        # removing boxes that are 3 units (since all 3 units are sank)
+#        elif num == 3:
+#            self.updatelist(3)
+            
 # Kivy setup --------------------------------------------------------------------------------------------------------------------------
 sm = ScreenManager()
 sm.add_widget(Setup(name="setup"))
