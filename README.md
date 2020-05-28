@@ -23,3 +23,25 @@ When all ships are placed,
 <br/><image src="READMEimages/StartBattling.PNG" width="800"><br/>
 
 Then, select level.
+<br/><image src="READMEimages/LevelSelect.PNG" width="800"><br/>
+
+Start playing.
+<br/><image src="READMEimages/Playing.PNG" width="800"><br/>
+
+You start first. A full hit on a ship uncovers surrounding boxes.
+<br/><image src="READMEimages/ShipSinked.PNG" width="800"><br/>
+
+When either won, a win message appears.
+<br/><image src="READMEimages/WinMsg.PNG" width="800"><br/>
+
+## Levels
+### Level One
+PC chooses random units.
+
+### Level Two
+PC chooses random units. When a part of a ship is hit, PC will choose the adjacent boxes next.
+
+### Level Three
+When a part of a ship is hit, PC will choose the adjacent boxes next. PC won't choose boxes that definitely don't have a ship.
+For instance, box at 8 down and 10 across will not be chosen when all submarines (1 unit ships) are sank.
+<br/><image src="READMEimages/AllOnesSank.PNG" width="800"><br/>
