@@ -44,4 +44,4 @@ PC chooses random units. When a part of a ship is hit, PC will choose the adjace
 ### Level Three
 When a part of a ship is hit, PC will choose the adjacent boxes next. PC won't choose boxes that definitely don't have a ship.
 For instance, box at 8 down and 10 across will not be chosen when all submarines (1 unit ships) are sank.
-<br/><image src="READMEimages/AllOnesSank.PNG" width="800"><br/>
+<br/><image src="READMEimages/AllOnesSank.PNG" width="350"><br/>
