@@ -546,17 +546,31 @@ class Gamescreen(Screen):
                 self.update_ene_avail(1)
                 print('update: all 1 units sank',self.eneavailunits)
                 
-#            if self.myshipboard['Destroyer(2)'] == 0:
-#                self.update_ene_avail(2)
-#                print("update: all 2 units sank",self.eneavailunits)
-#                
-#            if self.myshipboard['Cruiser(3)']==0:
-#                self.update_ene_avail(3)
-#                print("update: all 3 units sank",self.eneavailunits)
-            
+                if self.myshipboard['Destroyer(2)'] == 0:
+                    self.update_ene_avail(2)
+                    print("update: all 1 and 2 units sank",self.eneavailunits)
+                    
+                    if self.myshipboard['Cruiser(3)']==0:
+                        self.update_ene_avail(3)
+                        print("update: all 1 and 2 and 3 units sank",self.eneavailunits)
+            print("eneavailunits/units that PC can choose from: ",self.eneavailunits)
+            # FOR TESTING PURPOSES -------------------------------
+#            if [1,1] in self.eneavailunits:
+#                pcunit = [1,1]
+#            elif [10,1] in self.eneavailunits:
+#                pcunit = [10,1]
+#            elif [10,10] in self.eneavailunits:
+#                pcunit = [10,10]
+#            elif [1,10] in self.eneavailunits:
+#                pcunit = [1,10]
+#            else:
+#                pcunit = random.choice(self.eneavailunits)
+            # -----------------------------------------------------
             pcunit = random.choice(self.eneavailunits)
+
         else:
             pcunit = self.enehitlist.get('next')
+
         print("level selected: ", self.level,"; pcunit: ",pcunit)    
         hit = self.checkhit(pcunit,self.myship,self.myshipdict,self.myshipboard,self.ids.myshipupdate)
                 
@@ -705,13 +719,64 @@ class Gamescreen(Screen):
                     print('one',ele)
                     self.eneavailunits.remove(ele) 
         
-#        # removing boxes that are 2 units (since all 2 units are sank)
-#        elif num == 2:
-#            self.updatelist(2)
-#        
-#        # removing boxes that are 3 units (since all 3 units are sank)
-#        elif num == 3:
-#            self.updatelist(3)
+        # removing boxes that are 2/3 units (since all 2/3 units are sank)
+        else:
+            self.updatelist(num)
+
+    def updatelist(self,num):
+        dictt = self.calculateLength()
+        for key,val in dictt.items():
+            if key <= num:
+                for unit in val:
+                    self.eneavailunits.remove(unit)
+                    
+    def calculateLength(self):
+        dictt = {}
+        for unit in self.eneavailunits:
+            #horizontally
+            x = unit[0]+1
+            y = unit[1]
+            xcount = 1
+            # horizontally right
+            ele = [x,y]
+            while ele in self.eneavailunits:
+                x+=1
+                xcount+=1
+                ele = [x,y]
+            # horizontally left
+            x = unit[0]-1
+            ele = [x,y]
+            while ele in self.eneavailunits:
+                x-=1
+                xcount+=1
+                ele = [x,y]
+                
+            #vertically
+            x = unit[0]
+            y = unit[1]+1
+            ycount = 1
+            # vertically right
+            ele = [x,y]
+            while ele in self.eneavailunits:
+                y+=1
+                ycount+=1
+                ele = [x,y]
+            # vertically left
+            y = unit[1]-1
+            ele = [x,y]
+            while ele in self.eneavailunits:
+                y-=1
+                ycount+=1
+                ele = [x,y]
+                
+            maxlen = max(xcount, ycount)   
+            if maxlen in dictt:
+                val = dictt[maxlen]
+                val.append(unit)
+                dictt[maxlen] = val
+            else:
+                dictt[maxlen] = [unit]    
+        return dictt
             
 # Kivy setup --------------------------------------------------------------------------------------------------------------------------
 sm = ScreenManager()
